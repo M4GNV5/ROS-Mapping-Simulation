@@ -1,0 +1,118 @@
+import rospy
+from math import atan2, pi, copysign
+from geometry_msgs.msg import Vector3, Pose, Twist
+from sensor_msgs.msg import Joy, LaserScan
+from std_msgs.msg import String, Float32MultiArray
+#from ohm_mecanum_sim.msg import WheelSpeed
+
+NODE_NAME = "sim_mapper"
+TOPIC_MOVE = "/robot1/cmd_vel"
+TOPIC_LASER = "/robot1/laser"
+TOPIC_POSE = "/robot1/pose"
+
+PATH_MAX_WIDTH = 3
+BRAKE_DISTANCE = 3
+ROTATION_SPEED = 1
+MAX_SPEED = 2
+MIN_SPEED = 2
+TURN_ACCURACY = 0.01
+
+distanceLeft = None
+distanceRight = None
+distanceForward = -1
+def on_laser_data(data):
+	global distanceLeft, distanceRight, distanceForward
+
+	def distanceOrNone(angle):
+		rad = angle * pi / 180
+		index = int(abs(data.angle_min - rad) / data.angle_increment)
+		distance = data.ranges[index]
+
+		if distance < data.range_max:
+			return distance
+		else:
+			return None
+
+	distanceLeft = distanceOrNone(-90)
+	distanceRight = distanceOrNone(90)
+	distanceForward = distanceOrNone(0)
+
+currentRotation = None
+def on_pose(data):
+	global currentRotation
+	siny_cosp = 2 * data.orientation.w * data.orientation.z
+	cosy_cosp = 1 - 2 * data.orientation.z * data.orientation.z
+	currentRotation = atan2(siny_cosp, cosy_cosp)
+	#currentRotation = 2 * asin(data.orientation.z)
+
+def main():
+	rospy.init_node(NODE_NAME)
+	pub = rospy.Publisher(TOPIC_MOVE, Twist, queue_size=10)
+
+	rospy.Subscriber(TOPIC_LASER, LaserScan, on_laser_data)
+	rospy.Subscriber(TOPIC_POSE, Pose, on_pose)
+
+	rate = rospy.Rate(10)
+	while currentRotation is None or distanceForward == -1:
+		rate.sleep()
+
+	#while not rospy.is_shutdown():
+	#	print(currentRotation)
+	#	data = Twist(Vector3(0, 0, 0), Vector3(0, 0, -0.3))
+	#	pub.publish(data)
+	#	rate.sleep()
+	#exit(0)
+
+	while not rospy.is_shutdown():
+		if distanceForward is not None and distanceForward < PATH_MAX_WIDTH / 2:
+			if distanceLeft is None or distanceLeft > PATH_MAX_WIDTH:
+				targetRotation = currentRotation - pi/2
+				rotSpeed = -ROTATION_SPEED
+			elif distanceRight is None or distanceRight > PATH_MAX_WIDTH:
+				targetRotation = currentRotation + pi/2
+				rotSpeed = ROTATION_SPEED
+			else:
+				print("Reached a dead end :(")
+				exit(1)
+
+			if targetRotation > pi:
+				targetRotation -= 2 * pi
+			if targetRotation < -pi:
+				targetRotation += 2 * pi
+
+			print("turning from {} to {}".format(currentRotation, targetRotation))
+
+			lastDist = 2
+			while lastDist > TURN_ACCURACY and not rospy.is_shutdown():
+				lastDist = abs(currentRotation - targetRotation)
+				if abs(lastDist) < pi / 8:
+					rotSpeed = copysign(lastDist, rotSpeed)
+				print("current rotation: {} distance {} speed {}".format(currentRotation, lastDist, rotSpeed))
+				data = Twist(Vector3(0, 0, 0), Vector3(0, 0, rotSpeed))
+				pub.publish(data)
+
+				rate.sleep()
+		else:
+			if distanceForward is not None and distanceForward < BRAKE_DISTANCE:
+				speedX = MIN_SPEED
+			else:
+				speedX = MAX_SPEED
+
+		speedY = 0
+		if distanceLeft is not None and distanceRight is not None \
+				and distanceLeft < PATH_MAX_WIDTH and distanceRight < PATH_MAX_WIDTH:
+			speedY = distanceRight - distanceLeft
+			if abs(speedY) > 1:
+				speedY = copysign(1, speedY)
+			if abs(speedY) < 0.0003:
+				speedY = 0
+
+
+		print(distanceLeft, distanceRight, distanceForward, currentRotation, speedX, speedY)
+		data = Twist(Vector3(speedX, speedY, 0), Vector3(0, 0, 0))
+		pub.publish(data)
+
+		rate.sleep()
+
+if __name__ == '__main__':
+	main()
