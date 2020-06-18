@@ -1,4 +1,5 @@
 import rospy
+import cv2
 import numpy as np
 from math import atan2, pi, sin, cos
 from geometry_msgs.msg import Point, Quaternion, Vector3, Pose, PoseStamped, Twist
@@ -11,11 +12,14 @@ TOPIC_GRID = "/robot1/grid"
 TOPIC_LASER = "/robot1/laser"
 TOPIC_POSE = "/robot1/pose"
 
-occupancy_map = np.ones(2000000, dtype=np.int8).reshape(1000, 2000)
-occupancy_map[:,:] = -1
+WIDTH = 400
+HEIGHT = 250
+WIDTH_METER = 18
+SCALE_F = WIDTH / WIDTH_METER
+RES_F = WIDTH_METER / WIDTH
 
-SCALE_F = 20
-RES_F = SCALE_F / 1000
+occupancy_map = np.ones(WIDTH * HEIGHT, dtype=np.int8).reshape(HEIGHT, WIDTH)
+occupancy_map[:,:] = -1
 
 def gp_com_message():
 	""" Return a nav_msgs/OccupancyGrid representation of this map. """
@@ -25,16 +29,15 @@ def gp_com_message():
 	grid_msg.header.frame_id = "map"
 
 	grid_msg.info.resolution = RES_F
-	grid_msg.info.width = 2000
-	grid_msg.info.height = 1000
+	grid_msg.info.width = WIDTH
+	grid_msg.info.height = HEIGHT
 
-	grid_msg.info.origin = Pose(Point(-5, -2.5, 0),
+	grid_msg.info.origin = Pose(Point(-WIDTH_METER / 2, HEIGHT / WIDTH * WIDTH_METER / 2, 0),
 								Quaternion(0, 0, 0, 1))
 
-	flat_grid = np.copy(occupancy_map.reshape((2000000,))) 
-	flat_grid = flat_grid.astype(int)
+	flat_grid = np.copy(occupancy_map.reshape((WIDTH * HEIGHT,)))
 	grid_msg.data = list(flat_grid)
-	return grid_msg 
+	return grid_msg
 
 def update_occupanct_map(x1, y1, x2, y2):
 	m = (y2 - y1) / (x2 - x1)
@@ -51,7 +54,7 @@ def update_occupanct_map(x1, y1, x2, y2):
 
 		#print(xInt,yInt)
 
-		if xInt>=2000 or yInt>=1000 or xInt<0 or yInt < 0:
+		if xInt >= WIDTH or yInt >= HEIGHT or xInt < 0 or yInt < 0:
 			continue
 
 		occupancy_map[yInt, xInt] = 0
@@ -62,7 +65,12 @@ def on_laser_data(data):
 	if x_pos is None:
 		return
 
+	x_curr = x_pos
+	y_curr = y_pos
 	for i, distance in enumerate(data.ranges):
+		if distance >= data.range_max:
+			continue
+
 		distance = distance * SCALE_F
 		angle = data.angle_min + i*data.angle_increment
 		angle_laser = rotation + angle
@@ -74,16 +82,15 @@ def on_laser_data(data):
 		dy = sin(angle_laser) * distance
 		dx = cos(angle_laser) * distance
 
-		x_point = x_pos + dx
-		y_point = y_pos + dy
+		x_point = int(x_curr + dx)
+		y_point = int(y_curr + dy)
 
-		update_occupanct_map(x_pos, y_pos, x_point, y_point)
-		if distance<data.range_max:
-			x_point = int(x_point)
-			y_point = int(y_point)
-			if x_point>=2000 or y_point>=1000 or x_point<0 or y_point < 0:
-				continue
-			occupancy_map[y_point, x_point] = 100 # oder 0
+		cv2.line(occupancy_map, (int(x_curr), int(y_curr)), (x_point, y_point), 1)
+		#update_occupanct_map(currX, currY, x_point, y_point)
+
+		if x_point >= WIDTH or y_point >= HEIGHT or x_point < 0 or y_point < 0:
+			continue
+		occupancy_map[y_point, x_point] = 100
 
 def on_pose(stampedData):
 	global x_pos, y_pos, rotation
@@ -93,7 +100,7 @@ def on_pose(stampedData):
 	x_pos = data.position.x * SCALE_F
 	y_pos = data.position.y * SCALE_F
 
-	print(x_pos, y_pos)
+	#print(x_pos, y_pos)
 
 	siny_cosp = 2 * data.orientation.w * data.orientation.z
 	cosy_cosp = 1 - 2 * data.orientation.z * data.orientation.z
