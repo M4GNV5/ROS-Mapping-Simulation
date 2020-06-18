@@ -1,6 +1,4 @@
-import rospy
-import cv2
-import numpy as np
+import rospy, cv2, numpy as np, operator
 from math import atan2, pi, sin, cos
 from geometry_msgs.msg import Point, Quaternion, Vector3, Pose, PoseStamped, Twist
 from sensor_msgs.msg import Joy, LaserScan
@@ -59,14 +57,7 @@ def update_occupanct_map(x1, y1, x2, y2):
 
 		occupancy_map[yInt, xInt] = 0
 
-x_pos, y_pos, rotation = None,0,0
-def on_laser_data(data):
-	global x_pos, y_pos, rotation
-	if x_pos is None:
-		return
-
-	x_curr = x_pos
-	y_curr = y_pos
+def analyze_laser_data(x_curr, y_curr, rotation, data):
 	for i, distance in enumerate(data.ranges):
 		if distance >= data.range_max:
 			continue
@@ -92,21 +83,39 @@ def on_laser_data(data):
 			continue
 		occupancy_map[y_point, x_point] = 100
 
-def on_pose(stampedData):
-	global x_pos, y_pos, rotation
+laser_datasets = []
+positions = []
+def on_laser_data(data):
+	global laser_datasets
+	laser_datasets.append(data)
 
+
+def on_pose(stampedData):
+	global positions
+
+	stamp = stampedData.header.stamp
 	data = stampedData.pose
 
 	x_pos = data.position.x * SCALE_F
 	y_pos = data.position.y * SCALE_F
 
-	#print(x_pos, y_pos)
-
 	siny_cosp = 2 * data.orientation.w * data.orientation.z
 	cosy_cosp = 1 - 2 * data.orientation.z * data.orientation.z
 	rotation = atan2(siny_cosp, cosy_cosp)
 
+	positions.append((stamp, x_pos, y_pos, rotation))
+
+def cmp_stamp(a, b):
+	ds = a.secs - b.secs
+	dns = a.nsecs - b.nsecs
+	return ds * 1000 + dns / 1000000
+	#if a.secs != b.secs:
+	#	return a.secs - b.secs
+	#else:
+	#	return a.nsecs - b.nsecs
+
 def main():
+	global positions, laser_datasets
 	rospy.init_node(NODE_NAME)
 	pub = rospy.Publisher(TOPIC_GRID, OccupancyGrid, queue_size=10)
 
@@ -116,7 +125,21 @@ def main():
 	rate = rospy.Rate(1)
 
 	while not rospy.is_shutdown():
-		pub.publish(gp_com_message())
+		if len(laser_datasets) > 3:
+			datasets = laser_datasets[0 : -3]
+			laser_datasets = laser_datasets[-3 : ]
+
+			for dataset in datasets:
+				stamp = dataset.header.stamp
+				pos_stamp, x, y, rot = min(positions, key=lambda x: abs(cmp_stamp(x[0], stamp)))
+				if abs(cmp_stamp(stamp, pos_stamp)) > 5:
+					continue # no good position candidate, ignore the LaserScan
+
+				analyze_laser_data(x, y, rot, dataset)
+
+			positions = positions[-10 : ]
+
+			pub.publish(gp_com_message())
 		rate.sleep()
 
 
