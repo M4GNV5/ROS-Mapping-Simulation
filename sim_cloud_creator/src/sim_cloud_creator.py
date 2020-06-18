@@ -30,7 +30,7 @@ def gp_com_message():
 	grid_msg.info.width = WIDTH
 	grid_msg.info.height = HEIGHT
 
-	grid_msg.info.origin = Pose(Point(-WIDTH_METER / 2, HEIGHT / WIDTH * WIDTH_METER / 2, 0),
+	grid_msg.info.origin = Pose(Point(-WIDTH_METER / 2, -HEIGHT / WIDTH * WIDTH_METER / 2, 0),
 								Quaternion(0, 0, 0, 1))
 
 	flat_grid = np.copy(occupancy_map.reshape((WIDTH * HEIGHT,)))
