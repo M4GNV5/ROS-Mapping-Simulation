@@ -14,8 +14,8 @@ PATH_MAX_WIDTH = 3
 BRAKE_DISTANCE = 3
 ROTATION_SPEED = 1
 MAX_SPEED = 2
-MIN_SPEED = 2
-TURN_ACCURACY = 0.01
+MIN_SPEED = 1
+TURN_ACCURACY = 0.05
 
 distanceLeft = None
 distanceRight = None
@@ -57,6 +57,8 @@ def main():
 	while currentRotation is None or distanceForward == -1:
 		rate.sleep()
 
+	targetRotation = currentRotation
+
 	#while not rospy.is_shutdown():
 	#	print(currentRotation)
 	#	data = Twist(Vector3(0, 0, 0), Vector3(0, 0, -0.3))
@@ -67,10 +69,10 @@ def main():
 	while not rospy.is_shutdown():
 		if distanceForward is not None and distanceForward < PATH_MAX_WIDTH / 2:
 			if distanceLeft is None or distanceLeft > PATH_MAX_WIDTH:
-				targetRotation = currentRotation - pi/2
+				targetRotation = targetRotation - pi/2
 				rotSpeed = -ROTATION_SPEED
 			elif distanceRight is None or distanceRight > PATH_MAX_WIDTH:
-				targetRotation = currentRotation + pi/2
+				targetRotation = targetRotation + pi/2
 				rotSpeed = ROTATION_SPEED
 			else:
 				print("Reached a dead end :(")
