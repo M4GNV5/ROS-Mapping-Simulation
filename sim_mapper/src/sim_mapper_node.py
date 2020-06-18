@@ -1,6 +1,6 @@
 import rospy
 from math import atan2, pi, copysign
-from geometry_msgs.msg import Vector3, Pose, Twist
+from geometry_msgs.msg import Vector3, PoseStamped, Twist
 from sensor_msgs.msg import Joy, LaserScan
 from std_msgs.msg import String, Float32MultiArray
 #from ohm_mecanum_sim.msg import WheelSpeed
@@ -38,8 +38,9 @@ def on_laser_data(data):
 	distanceForward = distanceOrNone(0)
 
 currentRotation = None
-def on_pose(data):
+def on_pose(stampedData):
 	global currentRotation
+	data = stampedData.pose
 	siny_cosp = 2 * data.orientation.w * data.orientation.z
 	cosy_cosp = 1 - 2 * data.orientation.z * data.orientation.z
 	currentRotation = atan2(siny_cosp, cosy_cosp)
@@ -50,7 +51,7 @@ def main():
 	pub = rospy.Publisher(TOPIC_MOVE, Twist, queue_size=10)
 
 	rospy.Subscriber(TOPIC_LASER, LaserScan, on_laser_data)
-	rospy.Subscriber(TOPIC_POSE, Pose, on_pose)
+	rospy.Subscriber(TOPIC_POSE, PoseStamped, on_pose)
 
 	rate = rospy.Rate(10)
 	while currentRotation is None or distanceForward == -1:

@@ -1,7 +1,7 @@
 import rospy
 import numpy as np
 from math import atan2, pi, sin, cos
-from geometry_msgs.msg import Point, Quaternion, Vector3, Pose, Twist
+from geometry_msgs.msg import Point, Quaternion, Vector3, Pose, PoseStamped, Twist
 from sensor_msgs.msg import Joy, LaserScan
 from std_msgs.msg import String, Float32MultiArray
 from nav_msgs.msg import OccupancyGrid
@@ -54,7 +54,7 @@ def update_occupanct_map(x1, y1, x2, y2):
 		if xInt>=2000 or yInt>=1000 or xInt<0 or yInt < 0:
 			continue
 
-		occupancy_map[yInt, xInt] = 0	
+		occupancy_map[yInt, xInt] = 0
 
 x_pos, y_pos, rotation = None,0,0
 def on_laser_data(data):
@@ -74,8 +74,8 @@ def on_laser_data(data):
 		dy = sin(angle_laser) * distance
 		dx = cos(angle_laser) * distance
 
-		x_point = x_pos + dx 
-		y_point = y_pos + dy 
+		x_point = x_pos + dx
+		y_point = y_pos + dy
 
 		update_occupanct_map(x_pos, y_pos, x_point, y_point)
 		if distance<data.range_max:
@@ -83,10 +83,12 @@ def on_laser_data(data):
 			y_point = int(y_point)
 			if x_point>=2000 or y_point>=1000 or x_point<0 or y_point < 0:
 				continue
-			occupancy_map[y_point, x_point] = 100 # oder 0 
+			occupancy_map[y_point, x_point] = 100 # oder 0
 
-def on_pose(data):
+def on_pose(stampedData):
 	global x_pos, y_pos, rotation
+
+	data = stampedData.pose
 
 	x_pos = data.position.x * SCALE_F
 	y_pos = data.position.y * SCALE_F
@@ -102,8 +104,8 @@ def main():
 	pub = rospy.Publisher(TOPIC_GRID, OccupancyGrid, queue_size=10)
 
 	rospy.Subscriber(TOPIC_LASER, LaserScan, on_laser_data)
-	rospy.Subscriber(TOPIC_POSE, Pose, on_pose)
-	
+	rospy.Subscriber(TOPIC_POSE, PoseStamped, on_pose)
+
 	rate = rospy.Rate(1)
 
 	while not rospy.is_shutdown():
