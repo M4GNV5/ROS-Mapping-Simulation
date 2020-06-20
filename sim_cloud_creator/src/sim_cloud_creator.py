@@ -9,7 +9,7 @@ NODE_NAME = "sim_cloud_creator"
 TOPIC_GRID = "/robot1/grid"
 TOPIC_LASER = "/robot1/laser"
 # change TOPIC_POSE to /robot1/tracked_pose if you want to draw map based on icp algorithm
-TOPIC_POSE = "/robot1/pose"
+TOPIC_POSE = "/robot1/tracked_pose"
 
 WIDTH = 400
 HEIGHT = 250
@@ -101,19 +101,18 @@ def main():
 	rate = rospy.Rate(1)
 
 	while not rospy.is_shutdown():
-		if len(laser_datasets) > 3 and len(positions) > 3:
-			datasets = laser_datasets[0 : -3]
-			laser_datasets = laser_datasets[-3 : ]
+		if len(positions) > 0 and len(laser_datasets) >= len(positions):
 
-			for dataset in datasets:
-				stamp = dataset.header.stamp
-				pos_stamp, x, y, rot = min(positions, key=lambda x: abs(cmp_stamp(x[0], stamp)))
-				if abs(cmp_stamp(stamp, pos_stamp)) > 5:
-					continue # no good position candidate, ignore the LaserScan
+			for pos in positions:
+				pos_stamp, x, y, rot = pos
+				dataset = min(laser_datasets, key=lambda x: abs(cmp_stamp(x.header.stamp, pos_stamp)))
 
+				if abs(cmp_stamp(dataset.header.stamp, pos_stamp)) > 1:
+					continue
+
+				laser_datasets.remove(dataset)
+				positions.remove(pos)
 				analyze_laser_data(x, y, rot, dataset)
-
-			positions = positions[-10 : ]
 
 			pub.publish(gp_com_message())
 		rate.sleep()
