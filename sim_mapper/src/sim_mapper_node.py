@@ -75,14 +75,11 @@ def main():
 			if targetRotation < -pi:
 				targetRotation += 2 * pi
 
-			print("turning from {} to {}".format(currentRotation, targetRotation))
-
 			lastDist = 2
 			while lastDist > TURN_ACCURACY and not rospy.is_shutdown():
 				lastDist = abs(currentRotation - targetRotation)
 				if abs(lastDist) < pi / 8:
 					rotSpeed = copysign(lastDist, rotSpeed)
-				print("current rotation: {} distance {} speed {}".format(currentRotation, lastDist, rotSpeed))
 				data = Twist(Vector3(0, 0, 0), Vector3(0, 0, rotSpeed))
 				pub.publish(data)
 
@@ -103,7 +100,6 @@ def main():
 				speedY = 0
 
 
-		print(distanceLeft, distanceRight, distanceForward, currentRotation, speedX, speedY)
 		data = Twist(Vector3(speedX, speedY, 0), Vector3(0, 0, 0))
 		pub.publish(data)
 
