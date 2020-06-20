@@ -8,6 +8,7 @@ from nav_msgs.msg import OccupancyGrid
 NODE_NAME = "sim_cloud_creator"
 TOPIC_GRID = "/robot1/grid"
 TOPIC_LASER = "/robot1/laser"
+# change TOPIC_POSE to /robot1/tracked_pose if you want to draw map based on icp algorithm
 TOPIC_POSE = "/robot1/pose"
 
 WIDTH = 400
@@ -24,38 +25,18 @@ def gp_com_message():
 
 	grid_msg = OccupancyGrid()
 	grid_msg.header.stamp = rospy.Time.now()
-	grid_msg.header.frame_id = "map"
+	grid_msg.header.frame_id = "pose"
 
 	grid_msg.info.resolution = RES_F
 	grid_msg.info.width = WIDTH
 	grid_msg.info.height = HEIGHT
 
-	grid_msg.info.origin = Pose(Point(-WIDTH_METER / 2, -HEIGHT / WIDTH * WIDTH_METER / 2, 0),
-								Quaternion(0, 0, 0, 1))
+	grid_msg.info.origin = Pose(Point(0, 0, 0), Quaternion(0, 0, 0, 1))
 
 	flat_grid = np.copy(occupancy_map.reshape((WIDTH * HEIGHT,)))
 	grid_msg.data = list(flat_grid)
 	return grid_msg
 
-def update_occupanct_map(x1, y1, x2, y2):
-	m = (y2 - y1) / (x2 - x1)
-	t = y1 - m * x1
-
-	x1 = int(x1)
-	x2 = int(x2)
-
-	for x in range(x1, x2):
-		y = m * x + t
-
-		xInt = int(x)
-		yInt = int(y)
-
-		#print(xInt,yInt)
-
-		if xInt >= WIDTH or yInt >= HEIGHT or xInt < 0 or yInt < 0:
-			continue
-
-		occupancy_map[yInt, xInt] = 0
 
 def analyze_laser_data(x_curr, y_curr, rotation, data):
 	for i, distance in enumerate(data.ranges):
@@ -77,7 +58,6 @@ def analyze_laser_data(x_curr, y_curr, rotation, data):
 		y_point = int(y_curr + dy)
 
 		cv2.line(occupancy_map, (int(x_curr), int(y_curr)), (x_point, y_point), 1)
-		#update_occupanct_map(currX, currY, x_point, y_point)
 
 		if x_point >= WIDTH or y_point >= HEIGHT or x_point < 0 or y_point < 0:
 			continue
@@ -109,10 +89,6 @@ def cmp_stamp(a, b):
 	ds = a.secs - b.secs
 	dns = a.nsecs - b.nsecs
 	return ds * 1000 + dns / 1000000
-	#if a.secs != b.secs:
-	#	return a.secs - b.secs
-	#else:
-	#	return a.nsecs - b.nsecs
 
 def main():
 	global positions, laser_datasets
@@ -125,7 +101,7 @@ def main():
 	rate = rospy.Rate(1)
 
 	while not rospy.is_shutdown():
-		if len(laser_datasets) > 3:
+		if len(laser_datasets) > 3 and len(positions) > 3:
 			datasets = laser_datasets[0 : -3]
 			laser_datasets = laser_datasets[-3 : ]
 
@@ -141,10 +117,6 @@ def main():
 
 			pub.publish(gp_com_message())
 		rate.sleep()
-
-
-
-
 
 if __name__ == '__main__':
 	main()

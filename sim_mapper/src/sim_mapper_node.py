@@ -44,7 +44,6 @@ def on_pose(stampedData):
 	siny_cosp = 2 * data.orientation.w * data.orientation.z
 	cosy_cosp = 1 - 2 * data.orientation.z * data.orientation.z
 	currentRotation = atan2(siny_cosp, cosy_cosp)
-	#currentRotation = 2 * asin(data.orientation.z)
 
 def main():
 	rospy.init_node(NODE_NAME)
@@ -58,13 +57,6 @@ def main():
 		rate.sleep()
 
 	targetRotation = currentRotation
-
-	#while not rospy.is_shutdown():
-	#	print(currentRotation)
-	#	data = Twist(Vector3(0, 0, 0), Vector3(0, 0, -0.3))
-	#	pub.publish(data)
-	#	rate.sleep()
-	#exit(0)
 
 	while not rospy.is_shutdown():
 		if distanceForward is not None and distanceForward < PATH_MAX_WIDTH / 2:
