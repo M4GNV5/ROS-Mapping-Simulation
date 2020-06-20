@@ -1,0 +1,6 @@
+[submodule "ohm_mecanum_sim_curr"]
+	path = ohm_mecanum_sim
+	url = git@github.com:M4GNV5/ohm_mecanum_sim
+[submodule "ohm_mecanum_sim"]
+	path = ohm_mecanum_sim
+	url = git@github.com:M4GNV5/ohm_mecanum_sim
