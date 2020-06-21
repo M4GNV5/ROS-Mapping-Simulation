@@ -34,6 +34,10 @@ Each python file contains some configuration variables at the start of the file:
 ## Preview
 
 You can view the simulation inputs, the tracked position and the generated map
-using rviz.
+using rviz. Simply set the frame_id to `pose` and add the following topics:
+
+- `/robot1/tracked_pose`
+- `/robot1/path`
+- `/robot1/grid`
 
 ![](https://i.m4gnus.de/112deb.png)
