@@ -23,6 +23,14 @@ cd src
 ./start_all.sh
 ```
 
+## Configuration
+
+Each python file contains some configuration variables at the start of the file:
+
+- [sim_cloud_creator.py](sim_cloud_creator/src/sim_cloud_creator.py#L12-L21)
+- [sim_mapper_node.py](sim_mapper/src/sim_cloud_creator.py#L12-L22)
+- [sim_pos_tracker_node.py](sim_pos_tracker/src/sim_pos_tracker_node.py#L14-L15)
+
 ## Preview
 
 You can view the simulation inputs, the tracked position and the generated map

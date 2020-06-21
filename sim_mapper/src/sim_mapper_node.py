@@ -3,18 +3,22 @@ from math import atan2, pi, copysign
 from geometry_msgs.msg import Vector3, PoseStamped, Twist
 from sensor_msgs.msg import Joy, LaserScan
 from std_msgs.msg import String, Float32MultiArray
-#from ohm_mecanum_sim.msg import WheelSpeed
 
 NODE_NAME = "sim_mapper"
 TOPIC_MOVE = "/robot1/cmd_vel"
 TOPIC_LASER = "/robot1/laser"
 TOPIC_POSE = "/robot1/pose"
 
+# width of a tunnel in the simulation
 PATH_MAX_WIDTH = 3
-BRAKE_DISTANCE = 3
-ROTATION_SPEED = 1
+# high/low driving speed
 MAX_SPEED = 2
 MIN_SPEED = 1
+# distance to wall when to switch to low driving speed
+BRAKE_DISTANCE = 3
+# max rotation speed
+ROTATION_SPEED = 1
+# resulting turn angle accuracy
 TURN_ACCURACY = 0.05
 
 distanceLeft = None

@@ -11,6 +11,7 @@ TOPIC_REAL_POSE = "/robot1/pose"
 TOPIC_POSE = "/robot1/tracked_pose"
 TOPIC_PATH = "/robot1/path"
 
+# set to False to not use the "real pose" for rotation information
 MIMIC_COMPASS = True
 
 last_laser_data = None

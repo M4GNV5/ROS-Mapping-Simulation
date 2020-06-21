@@ -8,12 +8,18 @@ from nav_msgs.msg import OccupancyGrid
 NODE_NAME = "sim_cloud_creator"
 TOPIC_GRID = "/robot1/grid"
 TOPIC_LASER = "/robot1/laser"
-# change TOPIC_POSE to /robot1/tracked_pose if you want to draw map based on icp algorithm
+
+# set TOPIC_POSE to "/robot1/pose" if you want a perfect but cheated result
+# set TOPIC_POSE to "/robot/tracked_pose" if you want to use the pose tracked by sim_pos_tracker
 TOPIC_POSE = "/robot1/tracked_pose"
 
+# width/height of the map in pixel
 WIDTH = 400
 HEIGHT = 250
+
+# width of the simulation in meter
 WIDTH_METER = 18
+
 SCALE_F = WIDTH / WIDTH_METER
 RES_F = WIDTH_METER / WIDTH
 
