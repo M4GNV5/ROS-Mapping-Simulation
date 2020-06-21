@@ -13,5 +13,9 @@ sleep 1
 python3 sim_mapper/src/sim_mapper_node.py &
 p3=$!
 
-wait $p0 $p1 $p2 $p3
-kill -9 $p0 $p1 $p2 $p3
+read -p "Press enter to exit"
+
+kill -9 $p0
+kill -9 $p1
+kill -9 $p2
+kill -9 $p3
